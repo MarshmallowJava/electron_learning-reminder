@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('node:path');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -25,6 +25,18 @@ const createWindow = () => {
   // mainWindow.webContents.openDevTools();
 };
 
+let subWindow = null;
+const createSubWindow = ()=>{
+  subWindow = new BrowserWindow({
+    width: 400,
+    height: 300,
+    webPreferences: {
+      preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY
+    }
+  });
+  subWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY)
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -39,6 +51,12 @@ app.whenReady().then(() => {
     }
   });
 });
+
+ipcMain.on("open-sub-page", () => {
+  if(subWindow === null){
+    createSubWindow();
+  }
+})
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
