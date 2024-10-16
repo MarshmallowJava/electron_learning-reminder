@@ -7,13 +7,9 @@
     text-align: center;
     border-bottom: solid 3px #000000;
 }
-.list{
+.body{
     font-size: 16px;
-    padding: 5%;
-    border-bottom: solid 1px #000000;
-}
-.add{
-    padding: 5%
+    padding: 2%;
 }
 .form-group{
     display: flex;
@@ -31,3 +27,9 @@
         // text-align: center;
     }
 }
+.button{
+    display: flex;
+    margin-bottom: 15px;
+    gap: 10px;
+    float: right;
+}    
