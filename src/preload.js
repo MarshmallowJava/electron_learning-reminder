@@ -1,6 +1,7 @@
 
 const {contextBridge, ipcRenderer} = require('electron');
 
-contextBridge.exposeInMainWorld('subPageAPI', {
-    open: () => ipcRenderer.send('open-sub-page')
+contextBridge.exposeInMainWorld('updateData', {
+    request: () => ipcRenderer.send('update-data'),
+    response: (channel, func) => ipcRenderer.on(channel, (event, ...args) => func(...args))
 });

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import * as React from 'react'
 import "./App.scss"
 
 import Container from 'react-bootstrap/Container'
@@ -6,32 +6,89 @@ import Button from "react-bootstrap/Button"
 import Tab from "react-bootstrap/Tab"
 import Tabs from "react-bootstrap/Tabs"
 import Table from "react-bootstrap/Table"
+import Pagination from "react-bootstrap/Pagination"
 
 export default function App(){
+    //タイトル
     const subtitle = ["提出忘れは防がねばならぬ", "ペーパーレスは実現された！", "* 課題は登録しないと効果がないぞ"]
+
     const [data, setData] = React.useState([]);
+    const [displayData,setDisplayData] = React.useState([]);
 
-    const update = async () => {
-        const https = require('https');
-        https.get("https://script.google.com/macros/s/AKfycbx5VCqBVgEO9pOsMHq5RS9iSRyT7qS2TtHYxKiFDqGn1XiLVQgRWdQDzDVk904I7Zte0g/exec", (response) => {
-           let data = '';
-           
-           response.on('data', (chunk) => {
-            data += chunk;
-           });
+    const perPage = 5;
+    const maxPage = 5;
+    const pageCount = Math.ceil(data.length / perPage);
 
-           response.on('end', () => {
-            console.log(JSON.parse(data));
-           });
-        });
+    const items = [];
+    const [active, setActive] = React.useState(1);
+
+    //ページネーション処理
+    items.push(<Pagination.First onClick={() => {
+        setActive(1);
+    }}/>);
+    items.push(<Pagination.Prev onClick={() => {
+        setActive(Math.max(1, active - 1));
+    }}/>);
+
+    if(pageCount <= maxPage){
+        for(let number = 1;number <= pageCount;number++){
+            items.push(
+                <Pagination.Item key={number} active={number === active} onClick={() => {
+                    setActive(number);
+                }}>
+                    {number}
+                </Pagination.Item>
+            );
+        }
+    }else{
+        let from = active - Math.floor((maxPage - 1) / 2);
+        let to = Math.max(1, from) + maxPage - 1;
+        from = Math.min(to, pageCount) - maxPage + 1;
+
+        if(from > 1){
+            items.push(<Pagination.Ellipsis disabled/>);
+        }
+
+        for(let number = Math.max(1, from);number <= Math.min(to, pageCount);number++){
+            items.push(
+                <Pagination.Item key={number} active={number === active} onClick={() => {
+                    setActive(number);
+                }}>
+                    {number}
+                </Pagination.Item>
+            );
+        }
+
+        if(to < pageCount){
+            items.push(<Pagination.Ellipsis disabled/>);
+        }
     }
+
+    items.push(<Pagination.Next onClick={() => {
+        setActive(Math.min(active + 1, pageCount));
+    }}/>);
+    items.push(<Pagination.Last onClick={() => {
+        setActive(pageCount);
+    }}/>);
+
+    //課題データのやり取り
+    React.useEffect(() => {
+        window.updateData.response("data", (json) => {
+            setData(json);
+        })
+    }, []);
 
     React.useEffect(() => {
-        // update();
-    }, [data]);
-    const on_pressed = () => {
-        update();
-    }
+        let array = [];
+        for(let number = 0;number < perPage;number++){
+            let index = (active - 1) * perPage + number;
+            if(index < data.length)
+                array.push(data[index]);
+        }
+
+        setDisplayData(array);
+    }, [active, data]);
+
     return (
         <Container>
             <div className="title">
@@ -56,13 +113,13 @@ export default function App(){
                                         </thead>
                                         <tbody>
                                             {
-                                                data.map(
+                                                displayData.map(
                                                     (item) => (
                                                         <tr key={item.id}>
                                                             <td>{item.class}</td>
                                                             <td>{item.assignment}</td>
-                                                            <td>{item.term-from}</td>
-                                                            <td>{item.resolve}</td>
+                                                            <td>{item["term-from"] + "-" + item["term-to"]}</td>
+                                                            <td>{item.resolve == 0 ? ("未提出") : ("提出済み")}</td>
                                                         </tr>
                                                     )
                                                 )
@@ -71,8 +128,21 @@ export default function App(){
                                     </Table>
                                 )
                             }
+                            <div className="pagination">
+                                {
+                                    data.length == 0 ? (
+                                        ""
+                                    ) : (
+                                        <Pagination>
+                                            {items}
+                                        </Pagination>    
+                                    )
+                                }
+                            </div>
                             <div className="button">
-                                <Button onClick={on_pressed}>
+                                <Button onClick={() => {
+                                    window.updateData.request()
+                                }}>
                                     更新
                                 </Button>
                             </div>
