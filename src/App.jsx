@@ -9,11 +9,11 @@ import Table from "react-bootstrap/Table"
 import Pagination from "react-bootstrap/Pagination"
 import Spinner from "react-bootstrap/Spinner"
 
-export default function App(){
+
+export default function App(){ 
     //タイトル
     const subtitle = ["提出忘れは防がねばならぬ", "ペーパーレスは実現された！", "* 課題は登録しないと効果がないぞ"]
 
-    const [name, setName] = React.useState(null);
     const [login, setLogin] = React.useState(false);
 
     const [input_id, setID] = React.useState("");
@@ -85,11 +85,10 @@ export default function App(){
 
     const do_login = () => {
         window.updateData.send({action: "login", id: input_id, password: input_pass});
-        setName(input_id);
         setLoading("ログインしています...");
     };
     const do_update = () => {
-        window.updateData.send({action: "update", name: name});
+        window.updateData.send({action: "update"});
         setLoading("データをダウンロード中...");
     };
     const do_append = () => {
@@ -99,9 +98,8 @@ export default function App(){
         sendData["assignment"] = input_assign;
         sendData["term-from"] = new Date(input_from).getTime();
         sendData["term-to"] = new Date(input_to).getTime();
-        sendData["name"] = name;
 
-        window.updateData.append(sendData);
+        window.updateData.send(sendData);
         setLoading("データをアップロード中...");
     };
 
@@ -109,8 +107,10 @@ export default function App(){
         window.updateData.response("login-result", (json) => {
             if(json.response == 200){
                 setLogin(true);
+                do_update();
+            }else{
+                setLoading(null);
             }
-            setLoading(null);
         })
     }, []);
     React.useEffect(() => {
@@ -238,7 +238,7 @@ export default function App(){
                                                                         <td>{item.resolve == 0 ? ("未提出") : ("提出済み")}</td>
                                                                         <td>
                                                                             <Button onClick={() => {
-                                                                                window.updateData.resolve({action: "resolve", id: item.id, status: (item.resolve + 1) % 2});
+                                                                                window.updateData.send({action: "resolve", id: item.id, status: (item.resolve + 1) % 2});
                                                                                 setLoading("提出状況を更新しています...", );
                                                                             }}>
                                                                                 変更

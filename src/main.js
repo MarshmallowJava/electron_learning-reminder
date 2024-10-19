@@ -40,7 +40,13 @@ app.on('window-all-closed', () => {
   }
 });
 
+let name = null;
+
 ipcMain.on("send", (event, data) => {
+  if(name !== null){
+    data["name"] = name;
+  }
+
   console.log("send: ", data);
 
   request.post(
@@ -54,6 +60,13 @@ ipcMain.on("send", (event, data) => {
       if(error){
         console.log("error has occured");
       }else{
+        //IDを控えておく
+        if("name" in body){
+          name = body["name"];
+          console.log("login as: " + name);
+        }
+
+        //返信
         mainWindow.webContents.send(data.action + "-result", body);
       }
     }
