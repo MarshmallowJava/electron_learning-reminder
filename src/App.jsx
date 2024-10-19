@@ -13,6 +13,12 @@ export default function App(){
     //タイトル
     const subtitle = ["提出忘れは防がねばならぬ", "ペーパーレスは実現された！", "* 課題は登録しないと効果がないぞ"]
 
+    const [name, setName] = React.useState(null);
+    const [login, setLogin] = React.useState(false);
+
+    const [input_id, setID] = React.useState("");
+    const [input_pass, setPassword] = React.useState("");
+
     const [data, setData] = React.useState([]);
     const [displayData,setDisplayData] = React.useState([]);
     const [loading, setLoading] = React.useState(null);
@@ -77,26 +83,50 @@ export default function App(){
         setActive(pageCount);
     }}/>);
 
-    const update = () => {
-        window.updateData.request()
+    const do_login = () => {
+        window.updateData.send({action: "login", id: input_id, password: input_pass});
+        setName(input_id);
+        setLoading("ログインしています...");
+    };
+    const do_update = () => {
+        window.updateData.send({action: "update", name: name});
         setLoading("データをダウンロード中...");
     };
+    const do_append = () => {
+        let sendData = {};
+        sendData["action"] = "append";
+        sendData["class"] = input_class;
+        sendData["assignment"] = input_assign;
+        sendData["term-from"] = new Date(input_from).getTime();
+        sendData["term-to"] = new Date(input_to).getTime();
+        sendData["name"] = name;
 
-    //課題データのやり取り
+        window.updateData.append(sendData);
+        setLoading("データをアップロード中...");
+    };
+
     React.useEffect(() => {
-        window.updateData.response("data-update", (json) => {
+        window.updateData.response("login-result", (json) => {
+            if(json.response == 200){
+                setLogin(true);
+            }
+            setLoading(null);
+        })
+    }, []);
+    React.useEffect(() => {
+        window.updateData.response("update-result", (json) => {
             setData(json);
             setLoading(null);
         })
     }, []);
     React.useEffect(() => {
-        window.updateData.response("data-append", (json) => {
-            setLoading(null);
+        window.updateData.response("append-result", (json) => {
+            do_update();
         })
     }, []);
     React.useEffect(() => {
-        window.updateData.response("data-resolve", (json) => {
-            update();
+        window.updateData.response("resolve-result", (json) => {
+            do_update();
         })
     }, []);
 
@@ -129,139 +159,160 @@ export default function App(){
                 <h1>REMINDER</h1>
                 {subtitle[Math.floor(Math.random() * subtitle.length)]}
             </div>
-            <div className="body">
-                <Tabs defaultActiveKey="List" id="uncontrolled-tab-example" className="mb-3">
-                    <Tab eventKey="List" title="課題一覧">
-                        <div className="list">
-                            <h5>課題一覧</h5>
-                            {
-                                loading !== null ? (
-                                    <div>
-                                        <Spinner animation="border" role="status">
-                                            <span className="visually-hidden"> Downloading</span>
-                                        </Spinner>
-                                        <p>{loading}</p>
-                                    </div>
-                                ):(
-                                    data.length == 0 ? (
-                                        <p>データはありません</p>
-                                    ) : (
-                                        <Table striped bordered hover>
-                                            <thead>
-                                                <td>授業</td>
-                                                <td>課題</td>
-                                                <td>提出可能期間</td>
-                                                <td>提出状況</td>
-                                                <td></td>
-                                            </thead>
-                                            <tbody>
-                                                {
-                                                    displayData.map(
-                                                        (item) => (
-                                                            <tr key={item.id}>
-                                                                <td>{item.class}</td>
-                                                                <td>{item.assignment}</td>
-                                                                <td>
-                                                                    <div>
-                                                                        <p>
-                                                                            {displayTime(item["term-from"]) + "-" + displayTime(item["term-to"])}
-                                                                        </p>
-                                                                        {
-                                                                            durationUntilDeadLine(item["term-to"]) < 4 && item.resolve == 0 ? (
-                                                                                <p>
-                                                                                    <font color="red">期限まであと{durationUntilDeadLine(item["term-to"])}日</font>
-                                                                                </p>
-                                                                            ) : ("")
-                                                                        }
-                                                                    </div>
-                                                                </td>
-                                                                <td>{item.resolve == 0 ? ("未提出") : ("提出済み")}</td>
-                                                                <td>
-                                                                    <Button onClick={() => {
-                                                                        window.updateData.resolve({id: item.id, status: (item.resolve + 1) % 2});
-                                                                        setLoading("提出状況を更新しています...", );
-                                                                    }}>
-                                                                        変更
-                                                                    </Button>
-                                                                </td>
-                                                            </tr>
-                                                        )
-                                                    )
-                                                }
-                                            </tbody>
-                                        </Table>
-                                    )    
-                                )
-                            }
-                            <div className="pagination">
-                                {
-                                    data.length == 0 || loading !== null ? (
-                                        ""
-                                    ) : (
-                                        <Pagination>
-                                            {items}
-                                        </Pagination>    
-                                    )
-                                }
-                            </div>
-                            <div className="button">
-                                <Button onClick={() => {
-                                    update();
-                                }} disabled={loading !== null}>
-                                    更新
-                                </Button>
-                            </div>
-                        </div>
-                    </Tab>
-                    <Tab eventKey="Add" title="課題追加">
-                        <div className="add">
-                            <h5>課題追加</h5>
-                            <div className="form-group">
-                                <label htmlFor="input1">授業名</label>
-                                <input type="text" id="input1" value={input_class} onChange={e => setClass(e.target.value)}/>
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="input2">課題名</label>
-                                <input type="text" id="input2"  value={input_assign} onChange={e => setAssign(e.target.value)}/>
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="input3">提出期限</label>
+            {
+                !login ? (
+                    <div className="body">
+                        <h4>ログイン</h4>
+                        {
+                            loading == null ? (
                                 <div>
-                                    <input type="datetime-local" id="input3"  value={input_from} onChange={e => setFrom(e.target.value)}/>
-                                    ~
-                                    <input type="datetime-local" id="input4"  value={input_to} onChange={e => setTo(e.target.value)}/>
-                                </div>
-                            </div>
-                            <div className="form-group">
-                                {
-                                    loading !== null ? (
-                                        <div>
-                                        <Spinner animation="border" role="status">
-                                            <span className="visually-hidden"> Uploading</span>
-                                        </Spinner>
-                                        <p>{loading}</p>
+                                    <div className="login">
+                                        <label htmlFor="input_id">ID</label>
+                                        <input type="text" id="input_id" value={input_id} onChange={e => setID(e.target.value)}/>
                                     </div>
-                                    ):(
-                                        <p> <font color="red">{inputError()}</font></p>
-                                    )
-                                }
-                                <Button onClick={() => {
-                                    let sendData = {};
-                                    sendData["class"] = input_class;
-                                    sendData["assignment"] = input_assign;
-                                    sendData["term-from"] = new Date(input_from).getTime();
-                                    sendData["term-to"] = new Date(input_to).getTime();
-
-                                    window.updateData.append(sendData);
-                                    setLoading("データをアップロード中...");
-                                }} disabled={loading !== null || inputError() !== null}>
-                                    追加
-                                </Button>
-                            </div>
-                        </div>
-                    </Tab>
-                </Tabs>
-            </div>
+                                    <div className="login">
+                                        <label htmlFor="input_pass">パスワード</label>
+                                        <input type="password" id="input_pass" value={input_pass} onChange={e => setPassword(e.target.value)}/>
+                                    </div>
+                                    <Button className='button' onClick={do_login}>
+                                        ログイン
+                                    </Button>
+                                </div>
+                            ):(
+                                <div>
+                                    <Spinner animation="border" role="status">
+                                        <span className="visually-hidden"> Login</span>
+                                    </Spinner>
+                                    <p>{loading}</p>
+                                </div> 
+                           )
+                        }
+                    </div>
+                ):(
+                    <div className="body">
+                        <Tabs defaultActiveKey="List" id="uncontrolled-tab-example" className="mb-3">
+                            <Tab eventKey="List" title="課題一覧">
+                                <div className="list">
+                                    <h5>課題一覧</h5>
+                                    {
+                                        loading !== null ? (
+                                            <div>
+                                                <Spinner animation="border" role="status">
+                                                    <span className="visually-hidden"> Downloading</span>
+                                                </Spinner>
+                                                <p>{loading}</p>
+                                            </div>
+                                        ):(
+                                            data.length == 0 ? (
+                                                <p>データはありません</p>
+                                            ) : (
+                                                <Table striped bordered hover>
+                                                    <thead>
+                                                        <td>授業</td>
+                                                        <td>課題</td>
+                                                        <td>提出可能期間</td>
+                                                        <td>提出状況</td>
+                                                        <td></td>
+                                                    </thead>
+                                                    <tbody>
+                                                        {
+                                                            displayData.map(
+                                                                (item) => (
+                                                                    <tr key={item.id}>
+                                                                        <td>{item.class}</td>
+                                                                        <td>{item.assignment}</td>
+                                                                        <td>
+                                                                            <div>
+                                                                                <p>
+                                                                                    {displayTime(item["term-from"]) + "-" + displayTime(item["term-to"])}
+                                                                                </p>
+                                                                                {
+                                                                                    durationUntilDeadLine(item["term-to"]) < 4 && item.resolve == 0 ? (
+                                                                                        <p>
+                                                                                            <font color="red">期限まであと{durationUntilDeadLine(item["term-to"])}日</font>
+                                                                                        </p>
+                                                                                    ) : ("")
+                                                                                }
+                                                                            </div>
+                                                                        </td>
+                                                                        <td>{item.resolve == 0 ? ("未提出") : ("提出済み")}</td>
+                                                                        <td>
+                                                                            <Button onClick={() => {
+                                                                                window.updateData.resolve({action: "resolve", id: item.id, status: (item.resolve + 1) % 2});
+                                                                                setLoading("提出状況を更新しています...", );
+                                                                            }}>
+                                                                                変更
+                                                                            </Button>
+                                                                        </td>
+                                                                    </tr>
+                                                                )
+                                                            )
+                                                        }
+                                                    </tbody>
+                                                </Table>
+                                            )    
+                                        )
+                                    }
+                                    <div className="pagination">
+                                        {
+                                            data.length == 0 || loading !== null ? (
+                                                ""
+                                            ) : (
+                                                <Pagination>
+                                                    {items}
+                                                </Pagination>    
+                                            )
+                                        }
+                                    </div>
+                                    <div className="button">
+                                        <Button onClick={do_update} disabled={loading !== null}>
+                                            更新
+                                        </Button>
+                                    </div>
+                                </div>
+                            </Tab>
+                            <Tab eventKey="Add" title="課題追加">
+                                <div className="add">
+                                    <h5>課題追加</h5>
+                                    <div className="form-group">
+                                        <label htmlFor="input1">授業名</label>
+                                        <input type="text" id="input1" value={input_class} onChange={e => setClass(e.target.value)}/>
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="input2">課題名</label>
+                                        <input type="text" id="input2"  value={input_assign} onChange={e => setAssign(e.target.value)}/>
+                                    </div>
+                                    <div className="form-group">
+                                        <label htmlFor="input3">提出期限</label>
+                                        <div>
+                                            <input type="datetime-local" id="input3"  value={input_from} onChange={e => setFrom(e.target.value)}/>
+                                            ~
+                                            <input type="datetime-local" id="input4"  value={input_to} onChange={e => setTo(e.target.value)}/>
+                                        </div>
+                                    </div>
+                                    <div className="form-group">
+                                        {
+                                            loading !== null ? (
+                                                <div>
+                                                    <Spinner animation="border" role="status">
+                                                        <span className="visually-hidden"> Uploading</span>
+                                                    </Spinner>
+                                                    <p>{loading}</p>
+                                                </div>
+                                            ):(
+                                                <p> <font color="red">{inputError()}</font></p>
+                                            )
+                                        }
+                                        <Button onClick={do_append} disabled={loading !== null || inputError() !== null}>
+                                            追加
+                                        </Button>
+                                    </div>
+                                </div>
+                            </Tab>
+                        </Tabs>
+                    </div>
+                )
+            }
         </Container>
     )
 }

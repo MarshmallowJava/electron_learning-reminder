@@ -40,53 +40,21 @@ app.on('window-all-closed', () => {
   }
 });
 
-//データのダウンロード
-ipcMain.on("update-data", () => {
+ipcMain.on("send", (event, data) => {
+  console.log("send: ", data);
 
-  request({url, encoding:"utf8", json:true}, (error, response, body) => {
-    if(error){
-      console.log("error has occured");
-    }else if(response.statusCode !== 200){
-      console.log("response statuscode: ", response.statusCode);
-    }else{
-      mainWindow.webContents.send("data-update", body);
-    }
-  })
-});
-
-ipcMain.on("append-data", (event, data) => {
-  data["action"] = "append";
   request.post(
     {
       url: url,
       json: true,
-      body: data
+      body: data,
+      followAllRedirects: true
     },
     (error, response, body) => {
       if(error){
         console.log("error has occured");
       }else{
-        console.log(body);
-        mainWindow.webContents.send("data-append", body);
-      }
-    }
-  );
-});
-
-ipcMain.on("resolve-data", (event, data) => {
-  data["action"] = "resolve";
-  request.post(
-    {
-      url: url,
-      json: true,
-      body: data
-    },
-    (error, response, body) => {
-      if(error){
-        console.log("error has occured");
-      }else{
-        console.log(body);
-        mainWindow.webContents.send("data-resolve", body);
+        mainWindow.webContents.send(data.action + "-result", body);
       }
     }
   );
