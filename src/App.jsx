@@ -161,7 +161,20 @@ export default function App(){
                                                             <tr key={item.id}>
                                                                 <td>{item.class}</td>
                                                                 <td>{item.assignment}</td>
-                                                                <td>{displayTime(item["term-from"]) + "-" + displayTime(item["term-to"])}</td>
+                                                                <td>
+                                                                    <div>
+                                                                        <p>
+                                                                            {displayTime(item["term-from"]) + "-" + displayTime(item["term-to"])}
+                                                                        </p>
+                                                                        {
+                                                                            durationUntilDeadLine(item["term-to"]) < 4 && item.resolve == 0 ? (
+                                                                                <p>
+                                                                                    <font color="red">期限まであと{durationUntilDeadLine(item["term-to"])}日</font>
+                                                                                </p>
+                                                                            ) : ("")
+                                                                        }
+                                                                    </div>
+                                                                </td>
                                                                 <td>{item.resolve == 0 ? ("未提出") : ("提出済み")}</td>
                                                                 <td>
                                                                     <Button onClick={() => {
@@ -251,6 +264,13 @@ export default function App(){
             </div>
         </Container>
     )
+}
+
+function durationUntilDeadLine(date){
+    const deadline = new Date(date).getTime();
+    const now = new Date().getTime();
+
+    return Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
 }
 
 function displayTime(epoch){
