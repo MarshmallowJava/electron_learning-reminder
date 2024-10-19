@@ -15,13 +15,18 @@ export default function App(){
 
     const [data, setData] = React.useState([]);
     const [displayData,setDisplayData] = React.useState([]);
-    const [loading, setLoading] = React.useState(false);
+    const [loading, setLoading] = React.useState(null);
 
     const perPage = 5;
     const maxPage = 5;
     const pageCount = Math.ceil(data.length / perPage);
     const items = [];
     const [active, setActive] = React.useState(1);
+
+    const [input_class, setClass] = React.useState("");
+    const [input_assign, setAssign] = React.useState("");
+    const [input_from, setFrom] = React.useState("");
+    const [input_to, setTo] = React.useState("");
 
     //ページネーション処理
     items.push(<Pagination.First onClick={() => {
@@ -74,9 +79,14 @@ export default function App(){
 
     //課題データのやり取り
     React.useEffect(() => {
-        window.updateData.response("data", (json) => {
+        window.updateData.response("data-update", (json) => {
             setData(json);
-            setLoading(false);
+            setLoading(null);
+        })
+    }, []);
+    React.useEffect(() => {
+        window.updateData.response("data-append", (json) => {
+            setLoading(null);
         })
     }, []);
 
@@ -91,6 +101,18 @@ export default function App(){
         setDisplayData(array);
     }, [active, data]);
 
+    const inputError = () => {
+        if(input_class.length == 0)
+            return "授業名が入力されていません"
+        if(input_assign.length == 0)
+            return "課題名が入力されていません"
+        if(input_from.length == 0)
+            return "期限開始時が入力されていません"
+        if(input_to.length == 0)
+            return "期限終了時が入力されていません"
+        return null
+    }
+
     return (
         <Container>
             <div className="title">
@@ -103,10 +125,13 @@ export default function App(){
                         <div className="list">
                             <h5>課題一覧</h5>
                             {
-                                loading ? (
-                                    <Spinner animation="border" role="status">
-                                        <span className="visually-hidden"> データをダウンロード中...</span>
-                                    </Spinner>
+                                loading !== null ? (
+                                    <div>
+                                        <Spinner animation="border" role="status">
+                                            <span className="visually-hidden"> Downloading</span>
+                                        </Spinner>
+                                        <p>{loading}</p>
+                                    </div>
                                 ):(
                                     data.length == 0 ? (
                                         <p>データはありません</p>
@@ -117,6 +142,7 @@ export default function App(){
                                                 <td>課題</td>
                                                 <td>提出可能期間</td>
                                                 <td>提出状況</td>
+                                                <td>フラグ</td>
                                             </thead>
                                             <tbody>
                                                 {
@@ -125,8 +151,13 @@ export default function App(){
                                                             <tr key={item.id}>
                                                                 <td>{item.class}</td>
                                                                 <td>{item.assignment}</td>
-                                                                <td>{item["term-from"] + "-" + item["term-to"]}</td>
+                                                                <td>{displayTime(item["term-from"]) + "-" + displayTime(item["term-to"])}</td>
                                                                 <td>{item.resolve == 0 ? ("未提出") : ("提出済み")}</td>
+                                                                <td>
+                                                                    <Button>
+                                                                        Letsgo
+                                                                    </Button>
+                                                                </td>
                                                             </tr>
                                                         )
                                                     )
@@ -150,8 +181,8 @@ export default function App(){
                             <div className="button">
                                 <Button onClick={() => {
                                     window.updateData.request()
-                                    setLoading(true);
-                                }}>
+                                    setLoading("データをダウンロード中...");
+                                }} disabled={loading !== null}>
                                     更新
                                 </Button>
                             </div>
@@ -162,22 +193,43 @@ export default function App(){
                             <h5>課題追加</h5>
                             <div className="form-group">
                                 <label htmlFor="input1">授業名</label>
-                                <input type="text" id="input1" />
+                                <input type="text" id="input1" value={input_class} onChange={e => setClass(e.target.value)}/>
                             </div>
                             <div className="form-group">
                                 <label htmlFor="input2">課題名</label>
-                                <input type="text" id="input2" />
+                                <input type="text" id="input2"  value={input_assign} onChange={e => setAssign(e.target.value)}/>
                             </div>
                             <div className="form-group">
                                 <label htmlFor="input3">提出期限</label>
                                 <div>
-                                    <input type="date" id="input3" />
+                                    <input type="datetime-local" id="input3"  value={input_from} onChange={e => setFrom(e.target.value)}/>
                                     ~
-                                    <input type="date" id="input3" />
+                                    <input type="datetime-local" id="input4"  value={input_to} onChange={e => setTo(e.target.value)}/>
                                 </div>
                             </div>
-                            <div className="button">
-                                <Button>
+                            <div className="form-group">
+                                {
+                                    loading !== null ? (
+                                        <div>
+                                        <Spinner animation="border" role="status">
+                                            <span className="visually-hidden"> Uploading</span>
+                                        </Spinner>
+                                        <p>{loading}</p>
+                                    </div>
+                                    ):(
+                                        <p> <font color="red">{inputError()}</font></p>
+                                    )
+                                }
+                                <Button onClick={() => {
+                                    let sendData = {};
+                                    sendData["class"] = input_class;
+                                    sendData["assignment"] = input_assign;
+                                    sendData["term-from"] = new Date(input_from).getTime();
+                                    sendData["term-to"] = new Date(input_to).getTime();
+
+                                    window.updateData.append(sendData);
+                                    setLoading("データをアップロード中...");
+                                }} disabled={loading !== null || inputError() !== null}>
                                     追加
                                 </Button>
                             </div>
@@ -187,4 +239,21 @@ export default function App(){
             </div>
         </Container>
     )
+}
+
+function displayTime(epoch){
+    const date = new Date(epoch * 1000);
+    const options = {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false, // 24時間形式
+      };
+    
+      // フォーマットした日付文字列を取得
+      return  date.toLocaleString('ja-JP', options);
 }
