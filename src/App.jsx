@@ -7,6 +7,7 @@ import Tab from "react-bootstrap/Tab"
 import Tabs from "react-bootstrap/Tabs"
 import Table from "react-bootstrap/Table"
 import Pagination from "react-bootstrap/Pagination"
+import Spinner from "react-bootstrap/Spinner"
 
 export default function App(){
     //タイトル
@@ -14,11 +15,11 @@ export default function App(){
 
     const [data, setData] = React.useState([]);
     const [displayData,setDisplayData] = React.useState([]);
+    const [loading, setLoading] = React.useState(false);
 
     const perPage = 5;
     const maxPage = 5;
     const pageCount = Math.ceil(data.length / perPage);
-
     const items = [];
     const [active, setActive] = React.useState(1);
 
@@ -75,6 +76,7 @@ export default function App(){
     React.useEffect(() => {
         window.updateData.response("data", (json) => {
             setData(json);
+            setLoading(false);
         })
     }, []);
 
@@ -101,31 +103,37 @@ export default function App(){
                         <div className="list">
                             <h5>課題一覧</h5>
                             {
-                                data.length == 0 ? (
-                                    <p>データはありません</p>
-                                ) : (
-                                    <Table striped bordered hover>
-                                        <thead>
-                                            <td>授業</td>
-                                            <td>課題</td>
-                                            <td>提出可能期間</td>
-                                            <td>提出状況</td>
-                                        </thead>
-                                        <tbody>
-                                            {
-                                                displayData.map(
-                                                    (item) => (
-                                                        <tr key={item.id}>
-                                                            <td>{item.class}</td>
-                                                            <td>{item.assignment}</td>
-                                                            <td>{item["term-from"] + "-" + item["term-to"]}</td>
-                                                            <td>{item.resolve == 0 ? ("未提出") : ("提出済み")}</td>
-                                                        </tr>
+                                loading ? (
+                                    <Spinner animation="border" role="status">
+                                        <span className="visually-hidden"> データをダウンロード中...</span>
+                                    </Spinner>
+                                ):(
+                                    data.length == 0 ? (
+                                        <p>データはありません</p>
+                                    ) : (
+                                        <Table striped bordered hover>
+                                            <thead>
+                                                <td>授業</td>
+                                                <td>課題</td>
+                                                <td>提出可能期間</td>
+                                                <td>提出状況</td>
+                                            </thead>
+                                            <tbody>
+                                                {
+                                                    displayData.map(
+                                                        (item) => (
+                                                            <tr key={item.id}>
+                                                                <td>{item.class}</td>
+                                                                <td>{item.assignment}</td>
+                                                                <td>{item["term-from"] + "-" + item["term-to"]}</td>
+                                                                <td>{item.resolve == 0 ? ("未提出") : ("提出済み")}</td>
+                                                            </tr>
+                                                        )
                                                     )
-                                                )
-                                            }
-                                        </tbody>
-                                    </Table>
+                                                }
+                                            </tbody>
+                                        </Table>
+                                    )    
                                 )
                             }
                             <div className="pagination">
@@ -142,6 +150,7 @@ export default function App(){
                             <div className="button">
                                 <Button onClick={() => {
                                     window.updateData.request()
+                                    setLoading(true);
                                 }}>
                                     更新
                                 </Button>
