@@ -77,6 +77,11 @@ export default function App(){
         setActive(pageCount);
     }}/>);
 
+    const update = () => {
+        window.updateData.request()
+        setLoading("データをダウンロード中...");
+    };
+
     //課題データのやり取り
     React.useEffect(() => {
         window.updateData.response("data-update", (json) => {
@@ -87,6 +92,11 @@ export default function App(){
     React.useEffect(() => {
         window.updateData.response("data-append", (json) => {
             setLoading(null);
+        })
+    }, []);
+    React.useEffect(() => {
+        window.updateData.response("data-resolve", (json) => {
+            update();
         })
     }, []);
 
@@ -142,7 +152,7 @@ export default function App(){
                                                 <td>課題</td>
                                                 <td>提出可能期間</td>
                                                 <td>提出状況</td>
-                                                <td>フラグ</td>
+                                                <td></td>
                                             </thead>
                                             <tbody>
                                                 {
@@ -154,8 +164,11 @@ export default function App(){
                                                                 <td>{displayTime(item["term-from"]) + "-" + displayTime(item["term-to"])}</td>
                                                                 <td>{item.resolve == 0 ? ("未提出") : ("提出済み")}</td>
                                                                 <td>
-                                                                    <Button>
-                                                                        Letsgo
+                                                                    <Button onClick={() => {
+                                                                        window.updateData.resolve({id: item.id, status: (item.resolve + 1) % 2});
+                                                                        setLoading("提出状況を更新しています...", );
+                                                                    }}>
+                                                                        変更
                                                                     </Button>
                                                                 </td>
                                                             </tr>
@@ -169,7 +182,7 @@ export default function App(){
                             }
                             <div className="pagination">
                                 {
-                                    data.length == 0 ? (
+                                    data.length == 0 || loading !== null ? (
                                         ""
                                     ) : (
                                         <Pagination>
@@ -180,8 +193,7 @@ export default function App(){
                             </div>
                             <div className="button">
                                 <Button onClick={() => {
-                                    window.updateData.request()
-                                    setLoading("データをダウンロード中...");
+                                    update();
                                 }} disabled={loading !== null}>
                                     更新
                                 </Button>
@@ -242,7 +254,7 @@ export default function App(){
 }
 
 function displayTime(epoch){
-    const date = new Date(epoch * 1000);
+    const date = new Date(epoch);
     const options = {
         timeZone: 'Asia/Tokyo',
         year: 'numeric',

@@ -55,6 +55,7 @@ ipcMain.on("update-data", () => {
 });
 
 ipcMain.on("append-data", (event, data) => {
+  data["action"] = "append";
   request.post(
     {
       url: url,
@@ -67,6 +68,25 @@ ipcMain.on("append-data", (event, data) => {
       }else{
         console.log(body);
         mainWindow.webContents.send("data-append", body);
+      }
+    }
+  );
+});
+
+ipcMain.on("resolve-data", (event, data) => {
+  data["action"] = "resolve";
+  request.post(
+    {
+      url: url,
+      json: true,
+      body: data
+    },
+    (error, response, body) => {
+      if(error){
+        console.log("error has occured");
+      }else{
+        console.log(body);
+        mainWindow.webContents.send("data-resolve", body);
       }
     }
   );
